@@ -1,12 +1,11 @@
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ClaimState, Receipt } from './types';
 import { DEFAULT_CATEGORIES, MONTHS } from './constants';
 import { analyzeReceipt } from './services/geminiService';
 import ReceiptItem from './components/ReceiptItem';
-import ClaimFormPrintable from './components/ClaimFormPrintable';
-import ReceiptsSummaryPrintable from './components/ReceiptsSummaryPrintable';
+import UnifiedPrintLayout from './components/UnifiedPrintLayout';
 import ImageCropper from './components/ImageCropper';
 
 const App: React.FC = () => {
@@ -19,6 +18,7 @@ const App: React.FC = () => {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [croppingImage, setCroppingImage] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,8 +31,24 @@ const App: React.FC = () => {
       setCroppingImage(result);
     };
     reader.readAsDataURL(file);
-    // Reset input
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleManualAdd = () => {
+    const tempId = uuidv4();
+    const newReceipt: Receipt = {
+      id: tempId,
+      image: '', 
+      amount: 0,
+      merchant: 'Manual Entry',
+      date: new Date().toLocaleDateString(),
+      category: 'Misc',
+      isProcessing: false,
+    };
+    setState(prev => ({
+      ...prev,
+      receipts: [...prev.receipts, newReceipt],
+    }));
   };
 
   const handleCropped = async (croppedBase64: string) => {
@@ -59,7 +75,6 @@ const App: React.FC = () => {
 
     try {
       const analysis = await analyzeReceipt(croppedBase64, state.categories);
-      
       setState(prev => ({
         ...prev,
         receipts: prev.receipts.map(r => 
@@ -110,184 +125,171 @@ const App: React.FC = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
-    <div className="min-h-screen pb-20">
-      {/* UI Navigation & Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 no-print">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div className="min-h-screen flex flex-col items-center">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-20 no-print w-full shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-4">
+             <div className="bg-blue-600 p-2 rounded-lg text-white shadow-inner hidden xs:block">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-800 leading-none">ClaimMaster AI</h1>
-              <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Automated Expense Claims</p>
+            <div className="flex items-center gap-4">
+              <h1 className="text-sm font-black text-gray-900 tracking-tight whitespace-nowrap uppercase">ClaimMaster</h1>
+              <div className="flex bg-gray-100 p-1 rounded-xl">
+                <button 
+                  onClick={() => setViewMode('edit')}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-200 ${viewMode === 'edit' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}
+                >
+                  Edit
+                </button>
+                <button 
+                  onClick={() => setViewMode('preview')}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-200 ${viewMode === 'preview' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}
+                >
+                  Preview
+                </button>
+              </div>
             </div>
           </div>
-          <div className="flex gap-3">
+
+          <div className="flex gap-2 w-full sm:w-auto">
+            {viewMode === 'edit' && (
+              <>
+                <button 
+                  onClick={handleManualAdd}
+                  className="flex-1 sm:flex-none bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-md flex items-center justify-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  MANUAL
+                </button>
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-md flex items-center justify-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                  </svg>
+                  CAPTURE
+                </button>
+              </>
+            )}
             <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-bold transition-all shadow-lg active:transform active:scale-95"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-              </svg>
-              Upload Receipt
-            </button>
-            <button 
-              onClick={handlePrint}
+              onClick={() => window.print()}
               disabled={state.receipts.length === 0}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white px-5 py-2 rounded-lg font-bold transition-all shadow-lg active:transform active:scale-95"
+              className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 disabled:bg-gray-100 disabled:text-gray-400 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-md flex items-center justify-center gap-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clipRule="evenodd" />
               </svg>
-              Print Claim
+              PRINT
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="max-w-6xl mx-auto px-4 mt-8 no-print">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Left Column: Config & Form Metadata */}
-          <div className="lg:col-span-1 space-y-6">
-            <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-              <h3 className="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                Claim Information
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Full Name</label>
-                  <input 
-                    type="text"
-                    value={state.name}
-                    onChange={(e) => setState(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="e.g. John Doe"
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Claim Month</label>
-                  <input 
-                    type="text"
-                    value={state.month}
-                    onChange={(e) => setState(prev => ({ ...prev, month: e.target.value }))}
-                    placeholder="e.g. October 2023"
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                  />
-                </div>
-              </div>
-            </section>
+      <div className="flex-grow flex flex-col items-center w-full max-w-5xl px-4 sm:px-6">
+        {viewMode === 'edit' ? (
+          <main className="w-full py-8 no-print animate-in fade-in slide-in-from-bottom-2 duration-500">
+             <div className="flex flex-col gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                  <h3 className="text-[11px] font-black text-blue-500 uppercase tracking-widest mb-4">Claim Metadata</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Staff Full Name</label>
+                      <input 
+                        type="text"
+                        value={state.name}
+                        onChange={(e) => setState(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Tan Ah Kow"
+                        className="w-full px-3 py-2 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Submission Month</label>
+                      <input 
+                        type="text"
+                        value={state.month}
+                        onChange={(e) => setState(prev => ({ ...prev, month: e.target.value }))}
+                        placeholder="October 2023"
+                        className="w-full px-3 py-2 bg-gray-50 border border-transparent rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold"
+                      />
+                    </div>
+                  </div>
+                </section>
 
-            <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800">Categories</h3>
-                <button 
-                  onClick={addNewCategory}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 px-2 py-1 bg-blue-50 rounded"
-                >
-                  + Add New
-                </button>
+                <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Active Total</h3>
+                    <button 
+                      onClick={addNewCategory}
+                      className="text-[10px] font-black text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 px-2 py-1 rounded"
+                    >
+                      + CATEGORY
+                    </button>
+                  </div>
+                  <div className="flex flex-col items-center justify-center flex-grow text-center">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Reimbursement Total</span>
+                    <span className="text-4xl font-black text-blue-600 tabular-nums">RM {state.receipts.reduce((a, b) => a + b.amount, 0).toFixed(2)}</span>
+                  </div>
+                </section>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {state.categories.map(cat => (
-                  <span key={cat} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium border border-gray-200">
-                    {cat}
-                  </span>
+
+              <div className="w-full space-y-4">
+                <div className="flex justify-between items-center px-2">
+                   <h2 className="text-xs font-black text-gray-400 uppercase tracking-tighter">{state.receipts.length} Documentation Entries</h2>
+                </div>
+
+                {state.receipts.map(receipt => (
+                  <ReceiptItem 
+                    key={receipt.id}
+                    receipt={receipt}
+                    categories={state.categories}
+                    onUpdate={updateReceipt}
+                    onRemove={removeReceipt}
+                  />
                 ))}
-              </div>
-            </section>
-          </div>
 
-          {/* Right Column: Receipt List */}
-          <div className="lg:col-span-2">
-            <div className="flex justify-between items-end mb-4">
-              <h3 className="text-lg font-bold text-gray-800">Uploaded Receipts ({state.receipts.length})</h3>
-              <p className="text-sm text-gray-500">Total: <span className="font-bold text-gray-900">RM {state.receipts.reduce((a, b) => a + b.amount, 0).toFixed(2)}</span></p>
-            </div>
+                {isProcessing && (
+                  <div className="bg-white border-2 border-blue-50 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center animate-pulse">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent mb-3"></div>
+                    <p className="text-blue-600 font-black text-[10px] uppercase tracking-widest">AI analysis in progress...</p>
+                  </div>
+                )}
 
-            <div className="space-y-4">
-              {state.receipts.map(receipt => (
-                <ReceiptItem 
-                  key={receipt.id}
-                  receipt={receipt}
-                  categories={state.categories}
-                  onUpdate={updateReceipt}
-                  onRemove={removeReceipt}
-                />
-              ))}
-              
-              {state.receipts.length === 0 && !isProcessing && (
-                <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl py-20 flex flex-col items-center justify-center text-gray-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <p className="font-medium">No receipts uploaded yet</p>
-                  <button 
+                {state.receipts.length === 0 && !isProcessing && (
+                  <div 
                     onClick={() => fileInputRef.current?.click()}
-                    className="mt-4 text-blue-600 font-bold hover:underline"
+                    className="bg-white border-2 border-dashed border-gray-100 rounded-2xl py-24 flex flex-col items-center justify-center text-gray-300 hover:border-blue-200 hover:bg-blue-50/20 transition-all cursor-pointer group"
                   >
-                    Click to upload your first receipt
-                  </button>
-                </div>
-              )}
-
-              {isProcessing && (
-                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 flex items-center justify-center gap-3">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
-                  <p className="text-blue-800 font-bold animate-pulse">Gemini AI is analyzing your receipt...</p>
-                </div>
-              )}
+                    <div className="bg-gray-50 p-4 rounded-full group-hover:bg-blue-100 group-hover:text-blue-500 transition-colors mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <p className="font-black text-sm text-gray-400 uppercase">Capture Receipt or Add Manually</p>
+                  </div>
+                )}
+              </div>
             </div>
+          </main>
+        ) : (
+          <div className="paper-preview no-print animate-in zoom-in-95 duration-500 w-full flex-grow flex justify-center">
+            <UnifiedPrintLayout state={state} />
           </div>
-        </div>
-      </main>
-
-      {/* Hidden file input */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileUpload} 
-        accept="image/*" 
-        className="hidden" 
-      />
-
-      {/* Cropper Overlay */}
-      {croppingImage && (
-        <ImageCropper 
-          src={croppingImage} 
-          onComplete={handleCropped} 
-          onCancel={() => setCroppingImage(null)} 
-        />
-      )}
-
-      {/* Print View Components */}
-      <div className="print-only">
-        <div className="page-break">
-          <ClaimFormPrintable state={state} categories={state.categories} />
-        </div>
-        <div className="page-break">
-          <ReceiptsSummaryPrintable receipts={state.receipts} />
-        </div>
+        )}
       </div>
 
-      {/* Footer Branding */}
-      <footer className="mt-20 py-8 text-center text-gray-400 text-xs no-print">
-        <p>&copy; 2024 Elcomp Technologies Sdn Bhd. All rights reserved.</p>
-        <p className="mt-1 uppercase tracking-widest font-bold text-[8px]">Powered by Google Gemini 3</p>
-      </footer>
+      <div className="print-only">
+        <UnifiedPrintLayout state={state} />
+      </div>
+
+      <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
+      {croppingImage && <ImageCropper src={croppingImage} onComplete={handleCropped} onCancel={() => setCroppingImage(null)} />}
     </div>
   );
 };
