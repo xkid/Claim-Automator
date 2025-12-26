@@ -2,6 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GeminiAnalysisResponse } from "../types";
 
+// Note: process.env.API_KEY is provided by the environment
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 export const analyzeReceipt = async (base64Image: string, categories: string[]): Promise<GeminiAnalysisResponse> => {
@@ -41,6 +42,11 @@ export const analyzeReceipt = async (base64Image: string, categories: string[]):
   });
 
   const resultText = response.text;
+  
+  if (!resultText) {
+    throw new Error("AI returned an empty response.");
+  }
+
   try {
     return JSON.parse(resultText);
   } catch (e) {
