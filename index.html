@@ -10,7 +10,6 @@
       :root {
         --a4-width: 210mm;
         --a4-height: 297mm;
-        --half-a4-height: 148.5mm;
       }
 
       @media screen {
@@ -28,10 +27,11 @@
           background: white;
           width: var(--a4-width);
           min-width: var(--a4-width);
-          height: var(--a4-height);
+          min-height: var(--a4-height);
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
           overflow: hidden;
           position: relative;
+          margin-bottom: 20px;
         }
       }
 
@@ -53,6 +53,7 @@
           page-break-after: always;
           overflow: hidden;
           box-shadow: none !important;
+          border: none !important;
         }
         @page {
           size: A4;
@@ -60,27 +61,30 @@
         }
       }
       
-      .receipt-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr); /* 3 columns wide */
-        gap: 2mm;
-        padding: 4mm;
+      .flexible-receipt-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4mm;
+        padding: 8mm;
       }
       
-      .receipt-card-mini {
-        border: 0.1mm solid #d1d5db;
-        height: 60mm; /* Adjusted to fit 4 rows in 297mm or 2 rows in 148mm */
+      .receipt-card-print {
+        border: 0.2mm solid #000;
         display: flex;
         flex-direction: column;
         break-inside: avoid;
         background: #fff;
+        position: relative;
       }
 
-      .main-container {
-        display: flex;
-        flex-direction: column;
+      .receipt-card-full {
         width: 100%;
-        align-items: center;
+        height: 100mm;
+      }
+
+      .receipt-card-half {
+        width: calc(50% - 2mm);
+        height: 70mm;
       }
     </style>
     <script type="importmap">

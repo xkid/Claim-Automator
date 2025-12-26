@@ -7,10 +7,19 @@ interface ReceiptItemProps {
   categories: string[];
   onUpdate: (id: string, updates: Partial<Receipt>) => void;
   onRemove: (id: string) => void;
+  onAddNewCategory: () => void;
 }
 
-const ReceiptItem: React.FC<ReceiptItemProps> = ({ receipt, categories, onUpdate, onRemove }) => {
+const ReceiptItem: React.FC<ReceiptItemProps> = ({ receipt, categories, onUpdate, onRemove, onAddNewCategory }) => {
   const hasImage = !!(receipt.croppedImage || receipt.image);
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (e.target.value === 'ADD_NEW') {
+      onAddNewCategory();
+    } else {
+      onUpdate(receipt.id, { category: e.target.value });
+    }
+  };
 
   return (
     <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-4 items-start md:items-center">
@@ -57,12 +66,13 @@ const ReceiptItem: React.FC<ReceiptItemProps> = ({ receipt, categories, onUpdate
           <label className="text-xs font-semibold text-gray-500 uppercase">Category</label>
           <select 
             value={receipt.category}
-            onChange={(e) => onUpdate(receipt.id, { category: e.target.value })}
+            onChange={handleCategoryChange}
             className="text-sm font-medium border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none p-1 transition-colors"
           >
             {categories.map(cat => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
+            <option value="ADD_NEW" className="text-blue-600 font-bold">+ Add New Category...</option>
           </select>
         </div>
 
@@ -94,7 +104,7 @@ const ReceiptItem: React.FC<ReceiptItemProps> = ({ receipt, categories, onUpdate
         title="Remove entry"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
         </svg>
       </button>
     </div>

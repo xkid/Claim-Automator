@@ -2,10 +2,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GeminiAnalysisResponse } from "../types";
 
-// Note: process.env.API_KEY is provided by the environment
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-
 export const analyzeReceipt = async (base64Image: string, categories: string[]): Promise<GeminiAnalysisResponse> => {
+  // Always initialize right before use to ensure the most up-to-date environment variables are used.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
   // Extract base64 content
   const data = base64Image.split(',')[1] || base64Image;
 
