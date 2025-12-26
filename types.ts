@@ -7,6 +7,7 @@ export interface Receipt {
   merchant: string;
   date: string;
   category: string;
+  remark?: string;
   isProcessing: boolean;
 }
 

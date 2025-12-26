@@ -7,29 +7,26 @@ interface UnifiedPrintLayoutProps {
 }
 
 const UnifiedPrintLayout: React.FC<UnifiedPrintLayoutProps> = ({ state }) => {
-  // Define 20 fixed rows as per user request
-  const fixedItems = [
-    "Handphone",
-    "Petrol",
-    "Toll",
-    "Parking Fee",
-    "Car Maintenance",
-    "Outstation Allowance",
-    "Travelling & Accomodation",
-    "Transportation",
-    "Staff Welfare",
-    "Entertainment",
-    "OT Claim",
-    "Medical",
-    "Misc",
-    "", "", "", "", "", "", "" // Empty rows to total 20
-  ];
+  // Use state.categories as the base for the rows to include custom categories
+  // We'll ensure at least 20 rows are shown for aesthetics
+  const rowList = [...state.categories];
+  const totalRows = Math.max(20, rowList.length);
+  const displayRows = Array.from({ length: totalRows }).map((_, i) => rowList[i] || "");
 
-  const getItemAmount = (description: string) => {
-    if (!description) return 0;
-    return state.receipts
-      .filter(r => r.category === description)
-      .reduce((acc, curr) => acc + curr.amount, 0);
+  const getItemData = (categoryName: string) => {
+    if (!categoryName) return { amount: 0, remarks: "" };
+    
+    const matchingReceipts = state.receipts.filter(r => r.category === categoryName);
+    const amount = matchingReceipts.reduce((acc, curr) => acc + curr.amount, 0);
+    
+    const remarksSet = new Set(
+      matchingReceipts
+        .map(r => r.remark?.trim())
+        .filter(remark => !!remark)
+    );
+    const remarksStr = Array.from(remarksSet).join(', ');
+    
+    return { amount, remarks: remarksStr };
   };
 
   const grandTotal = state.receipts.reduce((acc, curr) => acc + curr.amount, 0);
@@ -74,7 +71,7 @@ const UnifiedPrintLayout: React.FC<UnifiedPrintLayoutProps> = ({ state }) => {
         </div>
       </div>
 
-      {/* Main Table - 20 Rows */}
+      {/* Main Table - Dynamic Rows */}
       <div className="flex-grow overflow-hidden">
         <table className="w-full border-collapse border border-black text-[7.5pt]">
           <thead>
@@ -85,12 +82,16 @@ const UnifiedPrintLayout: React.FC<UnifiedPrintLayoutProps> = ({ state }) => {
             </tr>
           </thead>
           <tbody>
-            {fixedItems.map((desc, idx) => {
-              const amount = getItemAmount(desc);
+            {displayRows.map((category, idx) => {
+              const { amount, remarks } = getItemData(category);
+              const description = category ? `${category}${remarks ? ` (${remarks})` : ""}` : "";
+              
               return (
                 <tr key={idx} className="h-[4.5mm]">
                   <td className="border border-black px-1 py-0 text-center">{idx + 1}</td>
-                  <td className="border border-black px-2 py-0 text-left">{desc}</td>
+                  <td className="border border-black px-2 py-0 text-left truncate max-w-[400px]">
+                    {description}
+                  </td>
                   <td className="border border-black px-2 py-0 text-right">
                     {amount > 0 ? amount.toFixed(2) : ""}
                   </td>
@@ -137,6 +138,7 @@ const UnifiedPrintLayout: React.FC<UnifiedPrintLayoutProps> = ({ state }) => {
             <div className="flex justify-between">
               <span>{r.date}</span>
             </div>
+            {r.remark && <div className="italic text-gray-400 truncate">Note: {r.remark}</div>}
           </div>
         </div>
       ))}
