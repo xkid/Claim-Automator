@@ -1,0 +1,7 @@
+{
+  "name": "Receipt Claim Automator",
+  "description": "An automated system to capture receipts, recognize amounts using Gemini AI, categorize them, and generate a formatted printable Monthly Claim Form alongside a receipt summary sheet.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
