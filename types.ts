@@ -9,15 +9,6 @@ export interface Receipt {
   category: string;
   remark?: string;
   isProcessing: boolean;
-  displayWidth?: 'half' | 'full';
-  // Layout properties in millimeters (mm) relative to the A4 page
-  layout?: {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-    page: number;
-  };
 }
 
 export interface ClaimState {
